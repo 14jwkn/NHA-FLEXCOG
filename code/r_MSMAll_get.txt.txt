@@ -1,0 +1,29 @@
+#Moves to the HCP1200 folder in the HCP dataset.
+cd ../inputs/data/human-connectome-project-openaccess/HCP1200
+
+#For every subject.
+for directory in *
+do
+
+        #If the subject's folder already exists because they have been processed, say it exists. 
+        if [ -d "../../MSMAll_Clean/$directory" ]
+        then
+                echo "$directory exists"
+	#Otherwise assume that the data is not processed, make the directory for it and get the data.
+        else
+                #Make the subject folder, get the first level dataset, enter it, get the second level dataset, enter it.
+                mkdir ../../MSMAll_Clean/$directory
+                datalad get -n $directory
+                cd $directory
+                datalad get -n MNINonLinear
+
+		#Get all resting-state files which are MSMAll processed. Copy these files into the subject folder created. 
+                datalad get MNINonLinear/Results/rfMRI_REST*_*/rfMRI_REST*_*_Atlas_MSMAll_hp2000_clean.dtseries.nii
+                cp MNINonLinear/Results/rfMRI_REST*_*/rfMRI_REST*_*_Atlas_MSMAll_hp2000_clean.dtseries.nii ../../../MSMAll_Clean/$directory
+		
+		#Leave the datasets and remove them to save space. Say that this subject is done.
+                cd ..
+                datalad remove -d $directory/MNINonLinear -r
+                echo "$directory done"
+        fi
+done

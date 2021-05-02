@@ -1,0 +1,40 @@
+#Location of the CIFTIFY tool.
+ciftifysimg=../containers/tigrlab_fmriprep_ciftify_v1.3.2-2.3.3-2019-08-16-c0fcb37f1b56.simg
+
+#Location of the Glasser atlas.
+atlasfile=Q1-Q6_RelatedValidation210.CorticalAreas_dil_Final_Final_Areas_Group_Colors.32k_fs_LR.dlabel.nii
+atlasdir=../inputs/
+
+#Locations of the output mean timeseries data and input fMRI MSMAll data.
+baseoutdir=../outputs/meants/
+baseindir=../inputs/data/MSMAll_Clean/
+
+#Iterate through all HCP1200 subject IDs and get their mean timeseries.
+while read subid
+do
+        #If the subject directory already exists in the output directory, means it's completed. Notify.
+        if [ -d "${baseoutdir}${subid}" ]
+        then
+                echo "${subid} exists"
+        else
+
+                #If the data is not processed, make the subject directory for it and set the input and
+                #output directories.
+                mkdir ${baseoutdir}${subid}
+                outdir=${baseoutdir}${subid}
+                indir=${baseindir}${subid}
+
+                #For each REST1,REST2,etc. run and phase L,R, etc., create the mean timeseries by submitting
+                #the the CIFTIFY tool with arguments specifying directories and file names. Results in 360 
+		#regions x 1200 TRs matrices per subject.
+                for infile in ${indir}/*
+                do
+                        echo ${indir}/${infile##*/}
+                        singularity exec \
+                                -B ${outdir}:/output \
+                                -B ${indir}:/input \
+                                -B ${atlasdir}:/atlas \
+                                ${ciftifysimg} ciftify_meants --outputcsv \
+                                /output/${infile##*/}_meants.csv /input/${infile##*/} /atlas/${atlasfile}
+                done
+done<HCP1200_ids.txt
